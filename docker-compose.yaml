@@ -1,0 +1,54 @@
+version: '3.4'
+
+services:
+    fastapi:
+        build: .
+        ports:
+            - 8000:8000
+        depends_on:
+            - redis
+            - postgres
+        environment:
+            - REDIS_HOST=redis
+            - POSTGRES_USER=app
+            - POSTGRES_PASSWORD=uiGh2lah
+            - POSTGRES_HOST=postgres
+
+    worker:
+        build: .
+        command: celery -A worker worker --loglevel=info
+        environment:
+            - REDIS_HOST=redis
+            - POSTGRES_USER=app
+            - POSTGRES_PASSWORD=uiGh2lah
+            - POSTGRES_HOST=postgres
+        depends_on:
+            - redis
+
+    redis:
+        image: redis:latest
+        ports:
+            - 6379:6379
+        command: redis-server
+
+    postgres:
+        image: postgres
+        ports:
+            - 5434:5434
+        build:
+            context: .
+            dockerfile: Dockerfile.postgres
+        environment:
+            POSTGRES_HOST_AUTH_METHOD: trust
+        volumes:
+            - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+        restart: always
+
+    front:
+        build:
+            context: .
+            dockerfile: SF_E8.9_front/Dockerfile.front
+        ports:
+            - 8080:8080
+        depends_on:
+            - fastapi
